@@ -1,0 +1,17 @@
+# WoW / DBM dev
+*.bak
+*.tmp
+*~
+
+# Large combat logs (keep out of git by default)
+logs/
+*.WoWCombatLog.txt
+
+# OS / IDE
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
