@@ -44,3 +44,7 @@ L:SetGeneralLocalization{
 	name = "Basalthane"
 }
 
+L:SetMiscLocalization{
+	YellEruption	= "Eruption on me!"
+}
+
