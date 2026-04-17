@@ -1,5 +1,5 @@
 -- Timers and spell IDs from combat log (Basalthane, NPC id 10185).
-local mod	= DBM:NewMod("Basalthane", "DBM-Onyxia")
+local mod	= DBM:NewMod("Basalthane", "DBM-Onyxia", 1)
 local L		= mod:GetLocalizedStrings()
 
 mod:SetRevision(("$Revision: 1 $"):sub(12, -3))
