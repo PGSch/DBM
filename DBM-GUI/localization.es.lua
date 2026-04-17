@@ -119,6 +119,7 @@ L.SpecWarn_ResetMe			= "Reiniciar con los valores por defecto"
 
 -- Tab: HealthFrame
 L.Panel_HPFrame				= "Barra de vida"
+L.Panel_BossModButtons		= "Acciones del mod"
 L.Area_HPFrame				= "Opciones de la barra de vida"
 L.HP_Enabled				= "Siempre ver la barra de vida (Sobreescribe la opción de bosses específicos)"
 L.HP_GrowUpwards			= "Mover la barra de vida arriba"

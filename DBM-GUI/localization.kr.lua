@@ -118,6 +118,7 @@ L.SpecWarn_ResetMe			= "초기화"
 
 -- Tab: HealthFrame
 L.Panel_HPFrame				= "보스 체력 프레임"
+L.Panel_BossModButtons		= "모드 동작"
 L.Area_HPFrame				= "체력 프레임 설정"
 L.HP_Enabled				= "해당 모드에서 끈 상태라도 항상 체력 프레임 보기(강제)"
 L.HP_GrowUpwards			= "보스 체력 프레임을 위로 쌓기"

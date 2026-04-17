@@ -44,7 +44,19 @@ L:SetGeneralLocalization{
 	name = "Basalthane"
 }
 
+L:SetTimerLocalization{
+	TimerPillarStun = "Basalthane stunned (pillar)"
+}
+
+L:SetOptionLocalization{
+	TimerFirstAnnihilationStrike	= "Show timer for first Annihilation Strike after pull",
+	TimerNextAnnihilationStrike	= "Show timer for next Annihilation Strike (after each cast)",
+	TimerTestButton					= "Test pull timers (short preview)"
+}
+
 L:SetMiscLocalization{
-	YellEruption	= "Eruption on me!"
+	YellEruption			= "Eruption on me!",
+	TimerTestStarted		= "Basalthane: Showing pull timers for %d seconds (not in combat).",
+	TimerTestInCombat		= "Basalthane: Timer preview is only available out of combat."
 }
 

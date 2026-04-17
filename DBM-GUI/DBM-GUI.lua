@@ -2082,6 +2082,25 @@ do
 			catpanel:AutoSetDimension()
 			panel:SetMyOwnHeight()
 		end
+		if mod.buttons then
+			local toolsArea = panel:CreateArea(L.Panel_BossModButtons, nil, nil, true)
+			local prevBtn
+			for btnKey, onClick in pairs(mod.buttons) do
+				local label = mod.localization.options[btnKey] or btnKey
+				local b = toolsArea:CreateButton(label, 240, 28, nil)
+				if prevBtn then
+					b:SetPoint("TOPLEFT", prevBtn, "BOTTOMLEFT", 0, -8)
+				else
+					b:SetPoint("TOPLEFT", toolsArea.frame, "TOPLEFT", 10, -12)
+				end
+				b:SetScript("OnClick", function()
+					onClick(mod)
+				end)
+				prevBtn = b
+			end
+			toolsArea:AutoSetDimension()
+			panel:SetMyOwnHeight()
+		end
 	end
 end
 

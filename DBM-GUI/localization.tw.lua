@@ -118,6 +118,7 @@ L.SpecWarn_ResetMe			= "重置為預設值"
 
 -- Tab: HealthFrame
 L.Panel_HPFrame				= "血量框架"
+L.Panel_BossModButtons		= "模組動作"
 L.Area_HPFrame				= "血量框架選項"
 L.HP_Enabled				= "總是顯示血量框架 (覆蓋首領特定的選項)"
 L.HP_GrowUpwards			= "血量框架向上延伸"

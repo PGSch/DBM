@@ -3652,8 +3652,8 @@ function bossModPrototype:AddSliderOption(name, minValue, maxValue, valueStep, d
 end
 
 function bossModPrototype:AddButton(name, onClick, cat, func)
-	cat = cat or misc
-	self:SetOptionCategory(name, cat)
+	cat = cat or "misc"
+	-- Buttons are drawn in DBM-GUI CreateBossModPanel (not listed as bool options in categories).
 	self.buttons = self.buttons or {}
 	self.buttons[name] = onClick
 	if func then

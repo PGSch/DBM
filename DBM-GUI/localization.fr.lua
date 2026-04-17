@@ -116,6 +116,7 @@ L.SpecWarn_ResetMe			= "Réinitialiser"
 
 -- Tab: HealthFrame
 L.Panel_HPFrame				= "Barre de vie"
+L.Panel_BossModButtons		= "Actions du mod"
 L.Area_HPFrame				= "Configurer la Barre de vie"
 L.HP_Enabled				= "Toujours montrer la Barre de vie, même si elle est désactivée dans le Module"
 L.HP_GrowUpwards			= "Prolonge la barre de vie vers le haut"

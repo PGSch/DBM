@@ -119,6 +119,7 @@ L.SpecWarn_ResetMe			= "Reset to defaults"
 
 -- Tab: HealthFrame
 L.Panel_HPFrame				= "Health Frame"
+L.Panel_BossModButtons		= "Mod actions"
 L.Area_HPFrame				= "Health Frame Options"
 L.HP_Enabled				= "Always show health frame (Overrides boss-specific option)"
 L.HP_GrowUpwards			= "Expand health frame upward"

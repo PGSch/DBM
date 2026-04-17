@@ -122,6 +122,7 @@ L.SpecWarn_ResetMe			= "重置选项"
 
 -- Tab: HealthFrame
 L.Panel_HPFrame				= "首领生命值框体"
+L.Panel_BossModButtons		= "模块操作"
 L.Area_HPFrame				= "首领生命值框体选项"
 L.HP_Enabled				= "总是显示首领生命值框体 (首领模块中单独的设置将不起作用)"
 L.HP_GrowUpwards			= "计量条想上增长"

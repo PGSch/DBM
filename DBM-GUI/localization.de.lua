@@ -115,6 +115,7 @@ L.SpecWarn_ResetMe			= "Auf Standard zurücksetzen"
 
 -- Tab: HealthFrame
 L.Panel_HPFrame				= "Lebensanzeige"
+L.Panel_BossModButtons		= "Mod-Aktionen"
 L.Area_HPFrame				= "Lebensanzeige-Optionen"
 L.HP_Enabled				= "Lebensanzeige immer anzeigen (überschreibt boss-spezifische Option)"
 L.HP_GrowUpwards			= "Erweitere Lebensanzeige nach oben"
