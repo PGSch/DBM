@@ -20,6 +20,8 @@ local annihilationStrike	= 2108206
 local infernoTrail			= 2108217
 local eruption				= 2108227
 local fierceBlow			= 975011
+-- Next spell id in the Basalthane 21082xxx block (verify in-game if the timer never updates)
+local heatSplash			= 2108212
 local flashBurnDebuff		= 2108201
 -- Ground effect from Eruption (combat log name); APPLIED on players standing in pool
 local magmaPool				= 2108233
@@ -41,6 +43,9 @@ local firstAnnihilation		= 3
 local firstInferno			= firstAnnihilation + 3
 local firstEruption			= 48			-- pull -> first Eruption cast (~45s after first Annihilation start in log)
 local cdEruptionRepeat		= 56
+-- Heat Splash: not in sample log; tune from live pulls
+local firstHeatSplash		= 11
+local cdHeatSplashRepeat	= 12
 -- After Eruption cast begins, next Annihilation / Inferno in log (~11s / ~14s from cast start)
 local delayAnniAfterEruption	= 11
 local delayInfernoAfterEruption = 14
@@ -52,6 +57,7 @@ local warnAnnihilation		= mod:NewSpellAnnounce(annihilationStrike, 3)
 local warnInferno			= mod:NewSpellAnnounce(infernoTrail, 3)
 local warnEruption			= mod:NewSpellAnnounce(eruption, 3)
 local warnFierceBlow		= mod:NewTargetAnnounce(fierceBlow, 2)
+local warnHeatSplash		= mod:NewSpellAnnounce(heatSplash, 3)
 local specWarnFlashBurn		= mod:NewSpecialWarningYou(flashBurnDebuff, true)
 local specWarnMagmaPool		= mod:NewSpecialWarningYou(magmaPool, true)
 
@@ -65,6 +71,7 @@ local timerFirstAnnihilation	= mod:NewNextTimer(firstAnnihilation, annihilationS
 local timerNextAnnihilation	= mod:NewNextTimer(cdAnnihilationRepeat, annihilationStrike, nil, true, "TimerNextAnnihilationStrike")
 local timerNextInferno		= mod:NewNextTimer(cdInfernoRepeat, infernoTrail)
 local timerNextFierceBlow	= mod:NewNextTimer(cdFierceBlow, fierceBlow)
+local timerNextHeatSplash	= mod:NewNextTimer(cdHeatSplashRepeat, heatSplash)
 local timerNextEruption		= mod:NewNextTimer(cdEruptionRepeat, eruption)
 local timerPillarStun		= mod:NewBuffActiveTimer(pillarStunDuration, pillarStunDebuff, "TimerPillarStun", true)
 
@@ -87,6 +94,7 @@ function mod:OnCombatStart(delay)
 	timerFirstAnnihilation:Start(firstAnnihilation - delay)
 	timerNextInferno:Start(firstInferno - delay)
 	timerNextFierceBlow:Start(firstFierceBlow - delay)
+	timerNextHeatSplash:Start(firstHeatSplash - delay)
 	timerNextEruption:Start(firstEruption - delay)
 end
 
@@ -120,6 +128,9 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if args:IsSpellID(fierceBlow) then
 		warnFierceBlow:Show(args.destName)
 		timerNextFierceBlow:Start()
+	elseif args:IsSpellID(heatSplash) then
+		warnHeatSplash:Show()
+		timerNextHeatSplash:Start()
 	end
 end
 
