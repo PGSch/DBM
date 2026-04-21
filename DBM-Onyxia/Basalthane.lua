@@ -57,7 +57,7 @@ local warnAnnihilation		= mod:NewSpellAnnounce(annihilationStrike, 3)
 local warnInferno			= mod:NewSpellAnnounce(infernoTrail, 3)
 local warnEruption			= mod:NewSpellAnnounce(eruption, 3)
 local warnFierceBlow		= mod:NewTargetAnnounce(fierceBlow, 2)
-local warnHeatSplash		= mod:NewSpellAnnounce(heatSplash, 3)
+local warnHeatSplash		= mod:NewSpellAnnounce(heatSplash, 3, nil, true, "WarnHeatSplash")
 local specWarnFlashBurn		= mod:NewSpecialWarningYou(flashBurnDebuff, true)
 local specWarnMagmaPool		= mod:NewSpecialWarningYou(magmaPool, true)
 
@@ -71,11 +71,21 @@ local timerFirstAnnihilation	= mod:NewNextTimer(firstAnnihilation, annihilationS
 local timerNextAnnihilation	= mod:NewNextTimer(cdAnnihilationRepeat, annihilationStrike, nil, true, "TimerNextAnnihilationStrike")
 local timerNextInferno		= mod:NewNextTimer(cdInfernoRepeat, infernoTrail)
 local timerNextFierceBlow	= mod:NewNextTimer(cdFierceBlow, fierceBlow)
-local timerNextHeatSplash	= mod:NewNextTimer(cdHeatSplashRepeat, heatSplash)
+local timerNextHeatSplash	= mod:NewNextTimer(cdHeatSplashRepeat, heatSplash, "TimerNextHeatSplashBar", true, "TimerNextHeatSplash")
 local timerNextEruption		= mod:NewNextTimer(cdEruptionRepeat, eruption)
 local timerPillarStun		= mod:NewBuffActiveTimer(pillarStunDuration, pillarStunDebuff, "TimerPillarStun", true)
 
 local firstAnnihilationPhase	= true
+
+-- New timer option keys must exist as booleans or DBM will not draw the bar (nil = off).
+function mod:OnInitialize()
+	if self.Options.TimerNextHeatSplash == nil then
+		self.Options.TimerNextHeatSplash = true
+	end
+	if self.Options.WarnHeatSplash == nil then
+		self.Options.WarnHeatSplash = true
+	end
+end
 
 local function isBossSource(args)
 	return mod:GetCIDFromGUID(args.sourceGUID) == 10185

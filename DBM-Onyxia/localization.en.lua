@@ -45,12 +45,15 @@ L:SetGeneralLocalization{
 }
 
 L:SetTimerLocalization{
-	TimerPillarStun = "Basalthane stunned (pillar)"
+	TimerPillarStun = "Basalthane stunned (pillar)",
+	TimerNextHeatSplashBar = "Next Heat Splash"
 }
 
 L:SetOptionLocalization{
 	TimerFirstAnnihilationStrike	= "Show timer for first Annihilation Strike after pull",
 	TimerNextAnnihilationStrike	= "Show timer for next Annihilation Strike (after each cast)",
+	WarnHeatSplash					= "Show warning for Heat Splash",
+	TimerNextHeatSplash				= "Show timer for next Heat Splash",
 	TimerTestButton					= "Test pull timers (short preview)"
 }
 
