@@ -2,61 +2,116 @@
 
 Deadly Boss Mods pack for **Onyxia's Lair**. It loads on demand when DBM needs this zone and includes two boss modules: **Onyxia** and **Basalthane**.
 
+This README documents the **stock Onyxia encounter** plus the **custom Basalthane module** and the **implementation details** added for timers, warnings, options, and the out-of-combat test preview.
+
 ---
 
-## Basalthane module — summary
+## Pack layout
 
-`Basalthane.lua` targets **Basalthane** (NPC **10185**). Combat is detected with `RegisterCombat("combat")` when you enter combat with that creature.
+| Piece | Role |
+|--------|------|
+| `DBM-Onyxia.toc` | Declares the addon, interface version, load zone **Onyxia's Lair**, load order (`localization.en.lua` → `Onyxia.lua` → `Basalthane.lua`). |
+| `Onyxia.lua` | Classic Onyxia encounter. |
+| `Basalthane.lua` | Custom boss mod for **Basalthane** (creature id **10185**), same addon id **`DBM-Onyxia`**, **sub-tab index `1`** so it appears as a second boss entry under this raid pack in `/dbm`. |
+| `localization.en.lua` | English strings for Onyxia and Basalthane (including custom option and timer labels). |
+
+---
+
+## Basalthane — encounter behaviour (summary)
+
+`Basalthane.lua` uses `RegisterCombat("combat")` and filters events so abilities are attributed to NPC **10185** (`GetCIDFromGUID`).
 
 ### Announcements and special warnings
 
-| Event | Behaviour |
-|--------|------------|
-| **Annihilation Strike** (2108206) | Spell announce on cast start. |
-| **Inferno Trail** (2108217) | Spell announce on cast start. |
-| **Eruption** (2108227) | Spell announce on cast start. |
-| **Fierce Blow** (975011) | Target announce on the player hit (cast success). |
-| **Flash Burn** (2108201) | Special warning **you** when the debuff is applied to you (boss as source). |
-| **Magma Pool** (2108233) | Special warning **you** when the ground debuff from Eruption applies to you; sends a **/yell** using the configured phrase (default: “Eruption on me!”). |
+| Event | Spell id | Behaviour |
+|--------|-----------|------------|
+| **Annihilation Strike** | 2108206 | Spell announce on `SPELL_CAST_START`. |
+| **Inferno Trail** | 2108217 | Spell announce on `SPELL_CAST_START`. |
+| **Eruption** | 2108227 | Spell announce on `SPELL_CAST_START`. |
+| **Fierce Blow** | 975011 | Target announce on `SPELL_CAST_SUCCESS`. |
+| **Heat Splash** | 2108212 | Spell announce on `SPELL_CAST_SUCCESS` (same pattern as Fierce Blow). |
+| **Flash Burn** | 2108201 | Special warning **you** on `SPELL_AURA_APPLIED` (player dest, boss as source in mod logic). |
+| **Magma Pool** | 2108233 | Special warning **you** when standing in the pool; optional **/yell** (`YellEruption` in misc localization). |
 
-### Cast bars
+### Cast bars (time from cast start to impact)
 
-Bars for the time from **cast start** to expected impact (values tuned from combat logs):
-
-- Annihilation Strike — 3 s  
-- Inferno Trail — 3 s  
-- Eruption — 5 s  
+| Ability | Duration (s) |
+|---------|----------------|
+| Annihilation Strike | 3 |
+| Inferno Trail | 3 |
+| Eruption | 5 |
 
 ### Cooldown / “next” timers
 
-Timers are aligned to observed log timings; boss movement or pillar phases can shift real casts slightly.
+Constants are tuned from a reference combat log (see file header in `Basalthane.lua`); adjust if your server differs.
 
 | Timer | Role |
 |--------|------|
-| **First Annihilation Strike** | Time from pull to the first Annihilation Strike cast start (~3 s). |
-| **Next Annihilation Strike** | Repeating cadence after each Annihilation cast start (~18 s); after **Eruption** starts, the next Annihilation timer is pushed to ~11 s from that cast. |
-| **Next Inferno Trail** | Seeded on pull (~6 s after pull), then ~14 s between Inferno casts; first cycle after the first Annihilation uses a shorter Inferno delay (~3 s), later cycles use ~11 s after Annihilation until the pattern resets on the next Inferno line. |
-| **Next Fierce Blow** | ~7.5 s between casts; first bar ~10.3 s from pull. |
-| **Next Eruption** | ~56 s between Eruption casts; first Eruption bar ~48 s from pull. |
-
-*(Exact constants live at the top of `Basalthane.lua` if you need to tweak them.)*
+| **First Annihilation Strike** | Time from pull to first Annihilation cast start (~3 s). Implemented with a **separate** `NewNextTimer` + option key so it does not share a toggle with “next” (same spell id **2108206**). |
+| **Next Annihilation Strike** | ~18 s after each Annihilation cast start; after **Eruption** starts, next Annihilation is pushed to ~11 s from that cast. |
+| **Next Inferno Trail** | Seeded on pull (~6 s), then ~14 s between Inferno casts; first cycle after the first Annihilation uses a short Inferno delay (~3 s), later cycles often ~11 s after Annihilation until the pattern resets. |
+| **Next Fierce Blow** | ~7.5 s between hits; first bar ~10.3 s from pull. |
+| **Next Heat Splash** | First bar ~11 s from pull; ~12 s between successive casts (`SPELL_CAST_SUCCESS`). **Not** in the original sample log—tune `firstHeatSplash` / `cdHeatSplashRepeat` from live pulls. |
+| **Next Eruption** | ~56 s between Eruptions; first Eruption ~48 s from pull. |
 
 ### Pillar phase — boss “stun” bar
 
-When a **Volatile Pillar** dies, the combat log shows Basalthane applying **Cracked Armor** (spell **2108234**) to **himself**. That moment is treated as the start of a **~20 s** window where the boss effectively stops his normal cast rhythm (no separate “Stun” aura was used in the reference logs).
+When a **Volatile Pillar** dies, the log shows Basalthane applying **Cracked Armor** (**2108234**) to **himself**. The mod treats that as a **~20 s** window where the boss’s normal rhythm is interrupted.
 
-- **On apply** (boss source and destination, same unit): a **buff/active** bar runs for **20 seconds** (label: “Basalthane stunned (pillar)” in English).  
-- **On remove** of that debuff on the boss: the bar is **cancelled** early if the aura drops before 20 s.
+- **On apply** (boss source and destination, same unit): `NewBuffActiveTimer` runs **20 s** with a custom bar title via **`TimerPillarStun`** in `localization.en.lua` (default: “Basalthane stunned (pillar)”).  
+- **On remove** on the boss: timer cancelled early if the aura drops before 20 s.
 
-If your live server uses a different duration, change `pillarStunDuration` (and optionally the `TimerPillarStun` string in `localization.en.lua`).
+Tweak `pillarStunDuration` and/or `TimerPillarStun` if your build uses a different duration or name.
 
-### Test pull timers (out of combat)
+---
 
-The Basalthane DBM panel includes a **misc** button: **“Test pull timers (short preview)”**.
+## Heat Splash — custom addition (details)
 
-- **Only usable while not in combat.** If you are in combat, DBM prints a short message and does nothing.  
-- Starts the same pull timers as `OnCombatStart` (with zero delay), runs for **12 seconds**, then calls `Stop()` on the mod if you are still not in combat (clears preview bars).  
-- Useful for checking bar layout and which toggles are enabled without pulling the boss.
+Heat Splash was added as a full **warning + next timer** pair, with explicit DBM option keys so entries always show correctly in **DBM → Raid mods → Onyxia's Lair → Basalthane**.
+
+| Item | Implementation |
+|------|----------------|
+| **Spell id** | `2108212` — placed in the same custom **21082xxx** band as other Basalthane spells. **Confirm in-game** (combat log or `/dump GetSpellInfo(2108212)`) if bars never update or the name is wrong. |
+| **Events** | `SPELL_CAST_SUCCESS` from the boss for announce + refresh of the next-timer bar (no separate cast bar unless you add `SPELL_CAST_START` later). |
+| **Bar label** | `NewNextTimer(..., "TimerNextHeatSplashBar", true, "TimerNextHeatSplash")` plus **`SetTimerLocalization`** → bar text **“Next Heat Splash”** (does not depend on the client knowing the spell name). |
+| **Options** | `WarnHeatSplash` and `TimerNextHeatSplash` with **`SetOptionLocalization`** strings in `localization.en.lua` (plain English descriptions for the GUI). |
+| **`OnInitialize`** | If `TimerNextHeatSplash` or `WarnHeatSplash` is **missing** from saved options, it is set to **`true`**. DBM treats a **nil** option as off; without this, new toggles could fail to show bars or the test preview until options are merged correctly. |
+
+---
+
+## DBM options and localization (custom patterns)
+
+### Same spell id, two timers (Annihilation)
+
+Annihilation Strike uses **one spell id** for both “first after pull” and “next after cast”. DBM’s auto-generated option ids would collide, so the mod uses **explicit option names** and **localized descriptions**:
+
+- `TimerFirstAnnihilationStrike`  
+- `TimerNextAnnihilationStrike`  
+
+Strings live in **`localization.en.lua`** under `SetOptionLocalization`.
+
+### `NewNextTimer` / `NewSpellAnnounce` arguments
+
+- For optional `timerText`, pass **`nil`**, not **`true`**. In DBM-Core, **`true` is mis-parsed** as `optionDefault` (arg shuffle), which breaks the options table and GUI.  
+- Heat Splash uses **`timerText`** `"TimerNextHeatSplashBar"` only for the **display string** key; the **boolean default** for the timer is still the fourth argument (`true`), and the **option key** is the fifth (`"TimerNextHeatSplash"`).
+
+### Timer bar titles vs spell names
+
+- **Pillar stun:** `TimerPillarStun` maps to “Basalthane stunned (pillar)” because the spell name (Cracked Armor) is not player-facing.  
+- **Heat Splash:** `TimerNextHeatSplashBar` maps to “Next Heat Splash” for a stable label even if `GetSpellInfo(2108212)` is missing on the client.
+
+---
+
+## Test pull timers (out of combat)
+
+The Basalthane panel exposes a **misc** button (**`TimerTestButton`**): **“Test pull timers (short preview)”**.
+
+| Behaviour | Detail |
+|-----------|--------|
+| **Combat** | Only works **out of combat**; otherwise `TimerTestInCombat` is printed. |
+| **Flow** | `Stop()` clears bars, sets an internal preview flag, calls **`OnCombatStart(0)`** (same pull timers as a real pull, including **Heat Splash**), schedules **`TimerTestPreviewEnd`** after **`timerTestPreviewSeconds`** (12 s). |
+| **Cleanup** | If still not in combat when the preview ends, **`Stop()`** clears the preview bars. |
+| **Options** | Respects per-timer / per-warning toggles. If **Heat Splash** (or anything else) is disabled in the GUI, that bar will not appear in the preview. |
 
 ---
 
@@ -64,48 +119,46 @@ The Basalthane DBM panel includes a **misc** button: **“Test pull timers (shor
 
 ### Requirements
 
-- **DBM-Core** (see `DBM-Onyxia.toc`: `RequiredDeps: DBM-Core`).  
-- Interface version in the `.toc` must match your client (currently **30300** in this repo).
+- **DBM-Core** (`RequiredDeps` in `DBM-Onyxia.toc`).  
+- **Interface** version in the `.toc` must match your client (this repo uses **30300**).
 
 ### Installation
 
-1. Copy the **`DBM-Onyxia`** folder into your WoW `Interface\AddOns` directory (same layout as in this repository).  
-2. Ensure **DBM-Core** is installed and enabled.  
-3. Restart the client or `/reload`.  
-4. In the AddOns list, enable **DBM-Onyxia** (and DBM-Core).
+1. Copy the **`DBM-Onyxia`** folder into `Interface\AddOns` (same layout as in the repo).  
+2. Enable **DBM-Core** and **DBM-Onyxia**.  
+3. Restart or `/reload`.
 
 ### Loading and options
 
-- This pack is **Load on Demand** (`LoadOnDemand: 1`). DBM loads it when you are in **Onyxia's Lair** (see `X-DBM-Mod-LoadZone` in the `.toc`).  
-- Open **DBM → Options → Raid mods** (or your client’s equivalent path), find **Onyxia's Lair**, then select **Basalthane**.  
-- Enable or disable each timer, warning, and the pillar stun bar as usual.  
-- Two separate toggles control **first** vs **next** Annihilation Strike timers so labels stay clear even though both use the same spell id.
+- **Load on Demand:** DBM loads the pack in **Onyxia's Lair** (`X-DBM-Mod-LoadZone`).  
+- Open **DBM → Options → Raid mods → Onyxia's Lair**, then select **Onyxia** or **Basalthane**.  
+- Basalthane lists separate toggles for **first** vs **next** Annihilation, all standard cast/next timers, pillar stun, **Heat Splash** warning/timer, and the **test preview** button label.
 
 ### Localization
 
-- Default strings for Basalthane live in **`localization.en.lua`** under the `Basalthane` section (`SetGeneralLocalization`, `SetTimerLocalization`, `SetOptionLocalization`, `SetMiscLocalization`).  
-- To support another locale, add a file (for example `localization.de.lua`) and list it in **`DBM-Onyxia.toc`** in the correct load order (localization before `Onyxia.lua` and `Basalthane.lua`).
+- Defaults for Basalthane are in **`localization.en.lua`** (`SetGeneralLocalization`, `SetTimerLocalization`, `SetOptionLocalization`, `SetMiscLocalization`).  
+- Add another locale by creating e.g. `localization.de.lua` and listing it in **`DBM-Onyxia.toc`** before the boss `.lua` files.
 
 ### Tuning from new logs
 
-Timers and constants in `Basalthane.lua` were derived from a specific combat log (`logs/2026-04-16-18.04.22 WoWCombatLog.txt` referenced in the file header). If Blizzard changes timings or spell ids:
-
-1. Update the numeric constants and/or spell ids at the top of **`Basalthane.lua`**.  
-2. Adjust **`localization.en.lua`** if option descriptions or player-facing strings should change.
+1. Adjust spell ids and numeric constants at the top of **`Basalthane.lua`**.  
+2. Update **`localization.en.lua`** if option wording or yell text should change.  
+3. For Heat Splash, prefer verifying **spell id** and **timings** from a fresh combat log if the ability was not in the original reference log.
 
 ---
 
-## Files in this pack (Basalthane-related)
+## Files in this pack (reference)
 
 | File | Purpose |
 |------|---------|
-| `Basalthane.lua` | Boss mod logic, events, timers, test preview. |
-| `localization.en.lua` | English strings for Onyxia and Basalthane. |
-| `DBM-Onyxia.toc` | AddOn metadata and load order. |
-| `Onyxia.lua` | Onyxia encounter (separate from Basalthane). |
+| `Basalthane.lua` | Basalthane: events, timers, pillar stun, Heat Splash, `OnInitialize`, test preview. |
+| `localization.en.lua` | English strings and custom option/timer labels for Onyxia and Basalthane. |
+| `DBM-Onyxia.toc` | Addon metadata and load order. |
+| `Onyxia.lua` | Onyxia encounter. |
+| `README.md` | This document. |
 
 ---
 
 ## Disclaimer
 
-DBM timers and warnings are **best-effort** based on observed combat log behaviour. They are not guaranteed to match every difficulty, hotfix, or private-server variant. Verify in-game and adjust constants as needed.
+DBM behaviour is **best-effort** from combat logs and in-game testing. Timings and spell ids may differ by patch, difficulty, or private-server data. Confirm in-game and adjust constants as needed.
