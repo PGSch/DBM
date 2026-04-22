@@ -4,9 +4,11 @@ local L		= mod:GetLocalizedStrings()
 
 mod:SetRevision(("$Revision: 2 $"):sub(12, -3))
 mod:SetCreatureID(10185)
+mod:SetUsedIcons(8)
 mod:RegisterCombat("combat")
 
 mod:AddButton("TimerTestButton", function() mod:TimerTestPreview() end, "misc")
+mod:AddBoolOption("SetIconOnMagmaPool", true)
 
 mod:RegisterEvents(
 	"SPELL_CAST_START",
@@ -151,9 +153,12 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnFlashBurn:Show()
 		end
 	elseif args:IsSpellID(magmaPool) and args:IsDestTypePlayer() then
+		if self.Options.SetIconOnMagmaPool then
+			self:SetIcon(args.destName, 8)
+		end
 		if args:IsPlayer() then
 			specWarnMagmaPool:Show()
-			SendChatMessage(L.YellEruption, "YELL")
+			SendChatMessage(L.YellEruption:format(UnitName("player")), "YELL")
 		end
 	elseif args:IsSpellID(pillarStunDebuff) and isBossSource(args) and isBossDest(args) and args.destGUID == args.sourceGUID then
 		timerPillarStun:Start()
@@ -161,7 +166,9 @@ function mod:SPELL_AURA_APPLIED(args)
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(pillarStunDebuff) and isBossDest(args) then
+	if args:IsSpellID(magmaPool) and args:IsDestTypePlayer() and self.Options.SetIconOnMagmaPool then
+		self:RemoveIcon(args.destName)
+	elseif args:IsSpellID(pillarStunDebuff) and isBossDest(args) then
 		timerPillarStun:Cancel()
 	end
 end
