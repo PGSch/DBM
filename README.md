@@ -12,7 +12,7 @@ This README documents the **stock Onyxia encounter** plus the **custom Basalthan
 |--------|------|
 | `DBM-Onyxia.toc` | Declares the addon, interface version, load zone **Onyxia's Lair**, load order (`localization.en.lua` → `Onyxia.lua` → `Basalthane.lua`). |
 | `Onyxia.lua` | Classic Onyxia encounter. |
-| `Basalthane.lua` | Custom boss mod for **Basalthane** (creature id **10185**), same addon id **`DBM-Onyxia`**, **sub-tab index `1`** so it appears as a second boss entry under this raid pack in `/dbm`. |
+| `Basalthane.lua` | Custom boss mod for **Basalthane** (creature id **10185**), same addon id **`DBM-Onyxia`**, **sub-tab index `1`** so it appears as a second boss entry under this raid pack in `/dbm`. Uses **`SetUsedIcons(8)`** to mark players hit by **Eruption**. |
 | `localization.en.lua` | English strings for Onyxia and Basalthane (including custom option and timer labels). |
 
 ---
@@ -27,11 +27,10 @@ This README documents the **stock Onyxia encounter** plus the **custom Basalthan
 |--------|-----------|------------|
 | **Annihilation Strike** | 2108206 | Spell announce on `SPELL_CAST_START`. |
 | **Inferno Trail** | 2108217 | Spell announce on `SPELL_CAST_START`. |
-| **Eruption** | 2108227 | Spell announce on `SPELL_CAST_START`. |
+| **Eruption** | 2108227 (cast); **2108233** (on-player) | **Cast:** announce on `SPELL_CAST_START`, cast bar, next timer (see timers section). **On players:** when someone stands in the eruption hazard, the boss applies aura **2108233** (the client/combat log may still label that aura “Magma Pool”); optional **raid icon 8** per affected player (`SetIconOnEruption`, default on), cleared on `SPELL_AURA_REMOVED`. Special warning **you**; optional **/yell** (`YellEruption` in misc localization). |
 | **Fierce Blow** | 975011 | Target announce on `SPELL_CAST_SUCCESS`. |
 | **Heat Splash** | 2108212 | Spell announce on `SPELL_CAST_SUCCESS` (same pattern as Fierce Blow). |
 | **Flash Burn** | 2108201 | Special warning **you** on `SPELL_AURA_APPLIED` (player dest, boss as source in mod logic). |
-| **Magma Pool** | 2108233 | Special warning **you** when standing in the pool; optional **/yell** (`YellEruption` in misc localization). |
 
 ### Cast bars (time from cast start to impact)
 
@@ -100,6 +99,10 @@ Strings live in **`localization.en.lua`** under `SetOptionLocalization`.
 - **Pillar stun:** `TimerPillarStun` maps to “Basalthane stunned (pillar)” because the spell name (Cracked Armor) is not player-facing.  
 - **Heat Splash:** `TimerNextHeatSplashBar` maps to “Next Heat Splash” for a stable label even if `GetSpellInfo(2108212)` is missing on the client.
 
+### Raid icons (Eruption)
+
+When **Eruption**’s ground hazard tags a player, the boss applies aura **2108233** (same mechanic end-to-end; only the aura row in data may use another spell name). With **`SetIconOnEruption`** enabled (default), the mod sets **raid icon 8** on apply and **`RemoveIcon`** on `SPELL_AURA_REMOVED`. The option label is in **`localization.en.lua`** under **`SetIconOnEruption`**. Upgrades: if an older save only had **`SetIconOnMagmaPool`**, **`OnInitialize`** copies that value into **`SetIconOnEruption`** once.
+
 ---
 
 ## Test pull timers (out of combat)
@@ -132,7 +135,7 @@ The Basalthane panel exposes a **misc** button (**`TimerTestButton`**): **“Tes
 
 - **Load on Demand:** DBM loads the pack in **Onyxia's Lair** (`X-DBM-Mod-LoadZone`).  
 - Open **DBM → Options → Raid mods → Onyxia's Lair**, then select **Onyxia** or **Basalthane**.  
-- Basalthane lists separate toggles for **first** vs **next** Annihilation, all standard cast/next timers, pillar stun, **Heat Splash** warning/timer, and the **test preview** button label.
+- Basalthane lists separate toggles for **first** vs **next** Annihilation, all standard cast/next timers, pillar stun, **Heat Splash** warning/timer, **Set icons on players hit by Eruption**, and the **test preview** button label.
 
 ### Localization
 
@@ -151,7 +154,7 @@ The Basalthane panel exposes a **misc** button (**`TimerTestButton`**): **“Tes
 
 | File | Purpose |
 |------|---------|
-| `Basalthane.lua` | Basalthane: events, timers, pillar stun, Heat Splash, `OnInitialize`, test preview. |
+| `Basalthane.lua` | Basalthane: events, timers, pillar stun, Heat Splash, Eruption raid icons, `OnInitialize`, test preview. |
 | `localization.en.lua` | English strings and custom option/timer labels for Onyxia and Basalthane. |
 | `DBM-Onyxia.toc` | Addon metadata and load order. |
 | `Onyxia.lua` | Onyxia encounter. |

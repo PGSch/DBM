@@ -55,7 +55,7 @@ L:SetOptionLocalization{
 	WarnHeatSplash					= "Show warning for Heat Splash",
 	TimerNextHeatSplash				= "Show timer for next Heat Splash",
 	TimerTestButton					= "Test pull timers (short preview)",
-	SetIconOnMagmaPool				= DBM_CORE_AUTO_ICONS_OPTION_TEXT:format(2108233)
+	SetIconOnEruption				= "Set icons on players hit by Eruption"
 }
 
 L:SetMiscLocalization{
