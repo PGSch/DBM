@@ -28,8 +28,7 @@ This README documents the **stock Onyxia encounter** plus the **custom Basalthan
 | **Annihilation Strike** | 2108206 | Spell announce on `SPELL_CAST_START`. |
 | **Inferno Trail** | 2108217 | Spell announce on `SPELL_CAST_START`. |
 | **Eruption** | 2108227 | Spell announce on `SPELL_CAST_START`, **cast bar**, and **next** timer only (no player icons or yells; ground pool applies too late in the log to drive callouts). |
-| **Fierce Blow** | 975011 | Target announce on `SPELL_CAST_SUCCESS`. |
-| **Heat Splash** | 2108212 | Spell announce on `SPELL_CAST_SUCCESS` (same pattern as Fierce Blow). |
+| **Heat Splash** | 2108212 | Client log name **Igneous Impact**: announce + next timer refresh on the **first** `SPELL_DAMAGE` / `SPELL_MISSED` per wave from the boss (`DBM:AntiSpam`), not on `SPELL_CAST_SUCCESS` (that event does not appear for this id in the sample log). |
 | **Flash Burn** | 2108201 | Special warning **you** on `SPELL_AURA_APPLIED` (player dest, boss as source in mod logic). |
 
 ### Cast bars (time from cast start to impact)
@@ -49,8 +48,7 @@ Constants are tuned from a reference combat log (see file header in `Basalthane.
 | **First Annihilation Strike** | Time from pull to first Annihilation cast start (~3 s). Implemented with a **separate** `NewNextTimer` + option key so it does not share a toggle with “next” (same spell id **2108206**). |
 | **Next Annihilation Strike** | ~18 s after each Annihilation cast start; after **Eruption** starts, next Annihilation is pushed to ~11 s from that cast. |
 | **Next Inferno Trail** | Seeded on pull (~6 s), then ~14 s between Inferno casts; first cycle after the first Annihilation uses a short Inferno delay (~3 s), later cycles often ~11 s after Annihilation until the pattern resets. |
-| **Next Fierce Blow** | ~7.5 s between hits; first bar ~10.3 s from pull. |
-| **Next Heat Splash** | First bar ~11 s from pull; ~12 s between successive casts (`SPELL_CAST_SUCCESS`). **Not** in the original sample log—tune `firstHeatSplash` / `cdHeatSplashRepeat` from live pulls. |
+| **Next Heat Splash** | Seeded at pull (~152 s to first wave in sample log); repeat ~131 s (`cdHeatSplashRepeat`), refreshed from damage events. Tune `firstHeatSplash` / `cdHeatSplashRepeat` if your server differs. |
 | **Next Eruption** | ~56 s between Eruptions; first Eruption ~48 s from pull. |
 
 ### Pillar phase — boss “stun” bar
@@ -71,7 +69,7 @@ Heat Splash was added as a full **warning + next timer** pair, with explicit DBM
 | Item | Implementation |
 |------|----------------|
 | **Spell id** | `2108212` — placed in the same custom **21082xxx** band as other Basalthane spells. **Confirm in-game** (combat log or `/dump GetSpellInfo(2108212)`) if bars never update or the name is wrong. |
-| **Events** | `SPELL_CAST_SUCCESS` from the boss for announce + refresh of the next-timer bar (no separate cast bar unless you add `SPELL_CAST_START` later). |
+| **Events** | `SPELL_DAMAGE` and `SPELL_MISSED` (boss source, spell **2108212**); **`DBM:AntiSpam(2, "BasalthaneHeatSplash")`** so one wave does not spam dozens of refreshes. |
 | **Bar label** | `NewNextTimer(..., "TimerNextHeatSplashBar", true, "TimerNextHeatSplash")` plus **`SetTimerLocalization`** → bar text **“Next Heat Splash”** (does not depend on the client knowing the spell name). |
 | **Options** | `WarnHeatSplash` and `TimerNextHeatSplash` with **`SetOptionLocalization`** strings in `localization.en.lua` (plain English descriptions for the GUI). |
 | **`OnInitialize`** | If `TimerNextHeatSplash` or `WarnHeatSplash` is **missing** from saved options, it is set to **`true`**. DBM treats a **nil** option as off; without this, new toggles could fail to show bars or the test preview until options are merged correctly. |

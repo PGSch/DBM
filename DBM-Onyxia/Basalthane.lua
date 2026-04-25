@@ -10,7 +10,8 @@ mod:AddButton("TimerTestButton", function() mod:TimerTestPreview() end, "misc")
 
 mod:RegisterEvents(
 	"SPELL_CAST_START",
-	"SPELL_CAST_SUCCESS",
+	"SPELL_DAMAGE",
+	"SPELL_MISSED",
 	"SPELL_AURA_APPLIED",
 	"SPELL_AURA_REMOVED"
 )
@@ -19,8 +20,7 @@ mod:RegisterEvents(
 local annihilationStrike	= 2108206
 local infernoTrail			= 2108217
 local eruption				= 2108227
-local fierceBlow			= 975011
--- Next spell id in the Basalthane 21082xxx block (verify in-game if the timer never updates)
+-- Combat log name "Igneous Impact" (same id); no CAST_SUCCESS in log—only SPELL_DAMAGE / SPELL_MISSED from boss.
 local heatSplash			= 2108212
 local flashBurnDebuff		= 2108201
 -- Self-DEBUFF on Basalthane when a Volatile Pillar dies; next boss cast ~20s later in log
@@ -34,16 +34,14 @@ local castEruption			= 5
 -- Cooldowns (seconds between matching events in log)
 local cdInfernoRepeat		= 14			-- Inferno Trail start -> next Inferno start
 local cdAnnihilationRepeat	= 18			-- rough anni start -> next anni start (varies with movement)
-local cdFierceBlow			= 7.5
-local firstFierceBlow		= 10.3
 local firstAnnihilation		= 3
 -- First Inferno Trail cast starts ~3s after first Annihilation cast start (log: anni -> inferno ≈ 3s)
 local firstInferno			= firstAnnihilation + 3
 local firstEruption			= 48			-- pull -> first Eruption cast (~45s after first Annihilation start in log)
 local cdEruptionRepeat		= 56
--- Heat Splash: not in sample log; tune from live pulls
-local firstHeatSplash		= 11
-local cdHeatSplashRepeat	= 12
+-- Heat Splash / Igneous Impact: tuned from logs/2026-04-16-18.04.22 WoWCombatLog.txt (first wave ~152s into pull, ~131s between waves)
+local firstHeatSplash		= 152
+local cdHeatSplashRepeat	= 131
 -- After Eruption cast begins, next Annihilation / Inferno in log (~11s / ~14s from cast start)
 local delayAnniAfterEruption	= 11
 local delayInfernoAfterEruption = 14
@@ -54,7 +52,6 @@ local timerTestPreviewSeconds	= 12
 local warnAnnihilation		= mod:NewSpellAnnounce(annihilationStrike, 3)
 local warnInferno			= mod:NewSpellAnnounce(infernoTrail, 3)
 local warnEruption			= mod:NewSpellAnnounce(eruption, 3)
-local warnFierceBlow		= mod:NewTargetAnnounce(fierceBlow, 2)
 local warnHeatSplash		= mod:NewSpellAnnounce(heatSplash, 3, nil, true, "WarnHeatSplash")
 local specWarnFlashBurn		= mod:NewSpecialWarningYou(flashBurnDebuff, true)
 
@@ -67,7 +64,6 @@ local timerEruptionCast		= mod:NewCastTimer(castEruption, eruption)
 local timerFirstAnnihilation	= mod:NewNextTimer(firstAnnihilation, annihilationStrike, nil, true, "TimerFirstAnnihilationStrike")
 local timerNextAnnihilation	= mod:NewNextTimer(cdAnnihilationRepeat, annihilationStrike, nil, true, "TimerNextAnnihilationStrike")
 local timerNextInferno		= mod:NewNextTimer(cdInfernoRepeat, infernoTrail)
-local timerNextFierceBlow	= mod:NewNextTimer(cdFierceBlow, fierceBlow)
 local timerNextHeatSplash	= mod:NewNextTimer(cdHeatSplashRepeat, heatSplash, "TimerNextHeatSplashBar", true, "TimerNextHeatSplash")
 local timerNextEruption		= mod:NewNextTimer(cdEruptionRepeat, eruption)
 local timerPillarStun		= mod:NewBuffActiveTimer(pillarStunDuration, pillarStunDebuff, "TimerPillarStun", true)
@@ -100,7 +96,6 @@ function mod:OnCombatStart(delay)
 	firstAnnihilationPhase = true
 	timerFirstAnnihilation:Start(firstAnnihilation - delay)
 	timerNextInferno:Start(firstInferno - delay)
-	timerNextFierceBlow:Start(firstFierceBlow - delay)
 	timerNextHeatSplash:Start(firstHeatSplash - delay)
 	timerNextEruption:Start(firstEruption - delay)
 end
@@ -130,16 +125,18 @@ function mod:SPELL_CAST_START(args)
 	end
 end
 
-function mod:SPELL_CAST_SUCCESS(args)
-	if not isBossSource(args) then return end
-	if args:IsSpellID(fierceBlow) then
-		warnFierceBlow:Show(args.destName)
-		timerNextFierceBlow:Start()
-	elseif args:IsSpellID(heatSplash) then
+-- Igneous Impact (2108212) fires many DAMAGE/MISSED lines per wave; throttle to one warn + one next-timer refresh.
+function mod:SPELL_DAMAGE(args)
+	if not isBossSource(args) or not args:IsSpellID(heatSplash) then return end
+	if not DBM:AntiSpam(2, "BasalthaneHeatSplash") then return end
+	if self.Options.WarnHeatSplash then
 		warnHeatSplash:Show()
-		timerNextHeatSplash:Start()
+	end
+	if self.Options.TimerNextHeatSplash then
+		timerNextHeatSplash:Start(cdHeatSplashRepeat)
 	end
 end
+mod.SPELL_MISSED = mod.SPELL_DAMAGE
 
 function mod:SPELL_AURA_APPLIED(args)
 	-- DBM-Core rewrites aura sourceGUID to destGUID for SPELL_AURA_*; do not use isBossSource() here for boss-on-player debuffs.
