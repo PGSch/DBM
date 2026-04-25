@@ -4,11 +4,9 @@ local L		= mod:GetLocalizedStrings()
 
 mod:SetRevision(("$Revision: 2 $"):sub(12, -3))
 mod:SetCreatureID(10185)
-mod:SetUsedIcons(8)
 mod:RegisterCombat("combat")
 
 mod:AddButton("TimerTestButton", function() mod:TimerTestPreview() end, "misc")
-mod:AddBoolOption("SetIconOnEruption", true)
 
 mod:RegisterEvents(
 	"SPELL_CAST_START",
@@ -25,8 +23,6 @@ local fierceBlow			= 975011
 -- Next spell id in the Basalthane 21082xxx block (verify in-game if the timer never updates)
 local heatSplash			= 2108212
 local flashBurnDebuff		= 2108201
--- On-player aura when someone stands in Eruption’s ground hazard (combat log may name it “Magma Pool”)
-local eruptionPlayerAura	= 2108233
 -- Self-DEBUFF on Basalthane when a Volatile Pillar dies; next boss cast ~20s later in log
 local pillarStunDebuff		= 2108234
 local pillarStunDuration	= 20
@@ -61,7 +57,6 @@ local warnEruption			= mod:NewSpellAnnounce(eruption, 3)
 local warnFierceBlow		= mod:NewTargetAnnounce(fierceBlow, 2)
 local warnHeatSplash		= mod:NewSpellAnnounce(heatSplash, 3, nil, true, "WarnHeatSplash")
 local specWarnFlashBurn		= mod:NewSpecialWarningYou(flashBurnDebuff, true)
-local specWarnEruptionPlayer	= mod:NewSpecialWarningYou(eruptionPlayerAura, true)
 
 local timerAnnihilationCast	= mod:NewCastTimer(castAnnihilation, annihilationStrike)
 local timerInfernoCast		= mod:NewCastTimer(castInferno, infernoTrail)
@@ -81,12 +76,6 @@ local firstAnnihilationPhase	= true
 
 -- New timer option keys must exist as booleans or DBM will not draw the bar (nil = off).
 function mod:OnInitialize()
-	if self.Options.SetIconOnEruption == nil and self.Options.SetIconOnMagmaPool ~= nil then
-		self.Options.SetIconOnEruption = self.Options.SetIconOnMagmaPool
-	end
-	if self.Options.SetIconOnEruption == nil then
-		self.Options.SetIconOnEruption = true
-	end
 	if self.Options.TimerNextHeatSplash == nil then
 		self.Options.TimerNextHeatSplash = true
 	end
@@ -153,28 +142,18 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if not isBossSource(args) then return end
+	-- DBM-Core rewrites aura sourceGUID to destGUID for SPELL_AURA_*; do not use isBossSource() here for boss-on-player debuffs.
 	if args:IsSpellID(flashBurnDebuff) and args:IsDestTypePlayer() then
 		if args:IsPlayer() then
 			specWarnFlashBurn:Show()
 		end
-	elseif args:IsSpellID(eruptionPlayerAura) and args:IsDestTypePlayer() then
-		if self.Options.SetIconOnEruption then
-			self:SetIcon(args.destName, 8)
-		end
-		if args:IsPlayer() then
-			specWarnEruptionPlayer:Show()
-			SendChatMessage(L.YellEruption:format(UnitName("player")), "YELL")
-		end
-	elseif args:IsSpellID(pillarStunDebuff) and isBossSource(args) and isBossDest(args) and args.destGUID == args.sourceGUID then
+	elseif args:IsSpellID(pillarStunDebuff) and isBossDest(args) and args.destGUID == args.sourceGUID then
 		timerPillarStun:Start()
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(eruptionPlayerAura) and args:IsDestTypePlayer() and self.Options.SetIconOnEruption then
-		self:RemoveIcon(args.destName)
-	elseif args:IsSpellID(pillarStunDebuff) and isBossDest(args) then
+	if args:IsSpellID(pillarStunDebuff) and isBossDest(args) then
 		timerPillarStun:Cancel()
 	end
 end

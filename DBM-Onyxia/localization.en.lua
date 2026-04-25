@@ -54,12 +54,10 @@ L:SetOptionLocalization{
 	TimerNextAnnihilationStrike	= "Show timer for next Annihilation Strike (after each cast)",
 	WarnHeatSplash					= "Show warning for Heat Splash",
 	TimerNextHeatSplash				= "Show timer for next Heat Splash",
-	TimerTestButton					= "Test pull timers (short preview)",
-	SetIconOnEruption				= "Set icons on players hit by Eruption"
+	TimerTestButton					= "Test pull timers (short preview)"
 }
 
 L:SetMiscLocalization{
-	YellEruption			= "ERRUPTION ON %s",
 	TimerTestStarted		= "Basalthane: Showing pull timers for %d seconds (not in combat).",
 	TimerTestInCombat		= "Basalthane: Timer preview is only available out of combat."
 }
